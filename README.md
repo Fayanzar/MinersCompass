@@ -99,6 +99,8 @@ Works with **ANY modpack** out of the box:
 
 ```json5
 {
+  // Show debug lines leading to the ore block
+  "showDirectionLines": true,
   // How many chunks around player to search (0-100)
   // Higher values = larger area but more performance impact
   "chunkRadius": 2,
@@ -150,6 +152,8 @@ Works with **ANY modpack** out of the box:
 
 #### **Basic Settings**
 
+- **`showDirectionLines`** - Show the lines indicating the exact direction to the 
+    ore block
 - **`chunkRadius`** - Search area around player (larger = more lag)
 - **`maxBlocks`** - How many ore types you can select simultaneously
 - **`enableAutoDiscovery`** - Automatically find modded ores vs manual only
@@ -174,6 +178,7 @@ Works with **ANY modpack** out of the box:
 
 ```json5
 {
+  "showDirectionLines": true,
   "chunkRadius": 2,
   "maxBlocks": 3,
   "minimumHardness": 2.0,
@@ -253,6 +258,7 @@ Works with **ANY modpack** out of the box:
   "chunkRadius": 2,
   "maxBlocks": 3,
   // New features
+  "showDirectionLines": true,
   "enableAutoDiscovery": true,
   "excludedOreTypes": [
     "coal",

@@ -30,7 +30,7 @@
     "DBD"
   ],
   "result": {
-    "item": "miners-compass:ore_compass"
-  },
-  "show_notification": true
+    "count": 1,
+    "id": "miners-compass:ore_compass"
+  }
 }

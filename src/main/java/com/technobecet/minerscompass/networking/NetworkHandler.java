@@ -4,8 +4,12 @@ import com.technobecet.minerscompass.MinersCompassMod;
 import com.technobecet.minerscompass.item.ModItems;
 import com.technobecet.minerscompass.util.DynamicOreType;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.NbtComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -15,7 +19,8 @@ import java.util.Set;
 public class NetworkHandler {
     
     public static void registerServerPackets() {
-        ServerPlayNetworking.registerGlobalReceiver(OreSelectionSyncPacket.TYPE, (packet, player, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(OreSelectionSyncPacket.ID, (packet, context) -> {
+            var player = context.player();
             // Handle the packet on the server thread
             player.server.execute(() -> {
                 MinersCompassMod.LOGGER.info("Received ore selection sync from player: {}", player.getName().getString());
@@ -44,7 +49,10 @@ public class NetworkHandler {
                 }
                 
                 // Update the compass NBT on server side
-                NbtCompound nbt = compassStack.getOrCreateNbt();
+                var data = compassStack.get(DataComponentTypes.CUSTOM_DATA);
+                NbtCompound nbt;
+                if (data != null) nbt = data.copyNbt();
+                else nbt = new NbtCompound();
                 
                 // Clear existing ore type keys
                 List<String> keysToRemove = new ArrayList<>();
@@ -61,7 +69,10 @@ public class NetworkHandler {
                     nbt.putString("SelectedOreTypes" + index, oreTypeId);
                     index++;
                 }
-                
+
+                NbtComponent component = NbtComponent.of(nbt);
+                compassStack.set(DataComponentTypes.CUSTOM_DATA, component);
+
                 MinersCompassMod.LOGGER.info("Updated compass NBT with {} ore types", packet.selectedOreTypeIds().size());
             });
         });

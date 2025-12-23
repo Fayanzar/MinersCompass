@@ -12,15 +12,15 @@ public class ModTags {
                 createBlockTag("ore_compass_detectable_blocks");
 
         private static TagKey<Block> createBlockTag(String name) {
-            return TagKey.of(RegistryKeys.BLOCK, new Identifier(MinersCompassMod.MOD_ID, name));
+            return TagKey.of(RegistryKeys.BLOCK, Identifier.of(MinersCompassMod.MOD_ID, name));
         }
 
         public static TagKey<Block> createBlockTagFromId(String name) {
-            return TagKey.of(RegistryKeys.BLOCK, new Identifier(name));
+            return TagKey.of(RegistryKeys.BLOCK, Identifier.of(name));
         }
 
         private static TagKey<Block> createCommonBlockTag(String name) {
-            return TagKey.of(RegistryKeys.BLOCK, new Identifier("c", name));
+            return TagKey.of(RegistryKeys.BLOCK, Identifier.of("c", name));
         }
     }
 }

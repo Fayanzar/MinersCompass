@@ -7,8 +7,8 @@ import com.technobecet.minerscompass.util.OreTypeManager;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.item.TooltipContext;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
@@ -30,7 +30,6 @@ import net.minecraft.world.chunk.Chunk;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class OreCompass extends Item {
 
@@ -59,10 +58,19 @@ public class OreCompass extends Item {
         boolean hasDimKey = hasNbtKey(nbt, TARGET_BLOCK_DIMENSION_KEY);
 
         if (hasPosKey && hasDimKey && tracked && (worldKey = getTrackedDimension(nbt)).isPresent()) {
-            BlockPos blockPos = NbtHelper.toBlockPos(nbt.getCompound(TARGET_BLOCK_POS_KEY));
-            return GlobalPos.create(worldKey.get(), blockPos);
+            var blockPos = NbtHelper.toBlockPos(nbt, TARGET_BLOCK_POS_KEY);
+            if (blockPos.isPresent()) return GlobalPos.create(worldKey.get(), blockPos.get());
         }
         return null;
+    }
+
+    public static String getTrackedOreType(NbtCompound nbt) {
+        if (nbt == null) return null;
+
+        var hasTrackedOreType = hasNbtKey(nbt, TRACKED_ORE_TYPE_KEY);
+        if (!hasTrackedOreType) return null;
+
+        return nbt.getString(TRACKED_ORE_TYPE_KEY);
     }
 
     private static Optional<BlockPos> findBlocks(ItemStack stack, World world, Entity entity, boolean force) {
@@ -71,13 +79,16 @@ public class OreCompass extends Item {
         }
 
         MinersCompassMod.LOGGER.info("Finding blocks for player: {} in world: {}", entity.getName().getString(), world.getRegistryKey().getValue());
-        
-        Set<DynamicOreType> selectedOreTypes = getSelectedOreTypesFromNbt(stack.getNbt());
+
+        var data = stack.get(DataComponentTypes.CUSTOM_DATA);
+        var nbt = new NbtCompound();
+        if (data != null) nbt = data.copyNbt();
+        Set<DynamicOreType> selectedOreTypes = getSelectedOreTypesFromNbt(nbt);
         MinersCompassMod.LOGGER.info("Selected ore types: {}", selectedOreTypes.size());
         
         if (selectedOreTypes.isEmpty()) {
             MinersCompassMod.LOGGER.info("No ore types selected - clearing NBT and returning empty");
-            clearNbtRecords(stack.getOrCreateNbt());
+            clearNbtRecords(stack);
             return Optional.empty();
         }
 
@@ -86,17 +97,19 @@ public class OreCompass extends Item {
         
         if (targetBlocks.isEmpty()) {
             MinersCompassMod.LOGGER.info("No target blocks found - clearing NBT and returning empty");
-            clearNbtRecords(stack.getOrCreateNbt());
+            clearNbtRecords(stack);
             return Optional.empty();
         }
 
-        var trackedPos = getTrackedPos(stack.getNbt());
+        data = stack.get(DataComponentTypes.CUSTOM_DATA);
+        if (data != null) nbt = data.copyNbt();
+        var trackedPos = getTrackedPos(nbt);
         if (!force && trackedPos != null) {
-            BlockState trackedBlockState = world.getBlockState(trackedPos.getPos());
+            BlockState trackedBlockState = world.getBlockState(trackedPos.pos());
             if (targetBlocks.contains(trackedBlockState.getBlock())) {
-                return Optional.of(trackedPos.getPos());
+                return Optional.of(trackedPos.pos());
             } else {
-                var dimKey = getTrackedDimension(stack.getNbt());
+                var dimKey = getTrackedDimension(nbt);
                 if (dimKey.isPresent() && !dimKey.get().toString().equals(entity.getWorld().getRegistryKey().toString())) {
                     return Optional.empty();
                 }
@@ -107,7 +120,7 @@ public class OreCompass extends Item {
         MinersCompassMod.LOGGER.info("Closest ore block found: {}", closest.isPresent() ? closest.get() : "none");
         
         playSoundOnStateChange(world, entity, stack, closest);
-        writeNbt(world.getRegistryKey(), closest, stack.getOrCreateNbt());
+        writeNbt(world.getRegistryKey(), closest, stack);
 
         return closest;
     }
@@ -121,13 +134,21 @@ public class OreCompass extends Item {
             playSound(world, entity, true);
             return;
         }
-        var trackedPos = getTrackedPos(stack.getNbt());
+        var data = stack.get(DataComponentTypes.CUSTOM_DATA);
+        NbtCompound nbt;
+        if (data != null) nbt = data.copyNbt();
+        else nbt = new NbtCompound();
+        var trackedPos = getTrackedPos(nbt);
         if (!closest.isPresent() && trackedPos != null) {
             playSound(world, entity, false);
         }
     }
 
-    private static void writeNbt(RegistryKey<World> worldKey, Optional<BlockPos> closest, NbtCompound nbt) {
+    private static void writeNbt(RegistryKey<World> worldKey, Optional<BlockPos> closest, ItemStack stack) {
+        var data = stack.get(DataComponentTypes.CUSTOM_DATA);
+        NbtCompound nbt;
+        if (data != null) nbt = data.copyNbt();
+        else return;
         if (nbt == null) return;
         
         if (closest.isPresent()) {
@@ -142,6 +163,9 @@ public class OreCompass extends Item {
             nbt.putBoolean(TARGET_BLOCK_TRACKED_KEY, false);
             nbt.remove(TARGET_BLOCK_DIMENSION_KEY);
         }
+
+        var component = NbtComponent.of(nbt);
+        stack.set(DataComponentTypes.CUSTOM_DATA, component);
     }
 
     private static void playSound(World world, Entity entity, boolean success) {
@@ -200,11 +224,17 @@ public class OreCompass extends Item {
         }
 
         if (closestPos != null && closestBlock != null) {
-            NbtCompound nbt = itemStack.getOrCreateNbt();
+            var data = itemStack.get(DataComponentTypes.CUSTOM_DATA);
+            NbtCompound nbt;
+            if (data != null) nbt = data.copyNbt();
+            else nbt = new NbtCompound();
             nbt.putString(TRACKED_BLOCK_KEY, Registries.BLOCK.getId(closestBlock).toString());
             
             Optional<DynamicOreType> oreType = OreTypeManager.getOreTypeForBlock(closestBlock);
             oreType.ifPresent(type -> nbt.putString(TRACKED_ORE_TYPE_KEY, type.getId()));
+
+            NbtComponent component = NbtComponent.of(nbt);
+            itemStack.set(DataComponentTypes.CUSTOM_DATA, component);
         }
 
         return Optional.ofNullable(closestPos);
@@ -229,16 +259,23 @@ public class OreCompass extends Item {
         return oreTypes;
     }
 
-    private static void saveSelectedOreTypesToNbt(NbtCompound nbt, Set<DynamicOreType> oreTypes) {
+    private static void saveSelectedOreTypesToNbt(ItemStack stack, Set<DynamicOreType> oreTypes) {
+        var data = stack.get(DataComponentTypes.CUSTOM_DATA);
+        NbtCompound nbt;
+        if (data != null) nbt = data.copyNbt();
+        else return;
         if (nbt == null) return;
-        
+
         clearOreTypeKeys(nbt);
-        
+
         int index = 0;
         for (DynamicOreType oreType : oreTypes) {
             nbt.putString(SELECTED_ORE_TYPES_KEY + index, oreType.getId());
             index++;
         }
+
+        NbtComponent component = NbtComponent.of(nbt);
+        stack.set(DataComponentTypes.CUSTOM_DATA, component);
     }
 
     private static void clearOreTypeKeys(NbtCompound nbt) {
@@ -261,13 +298,16 @@ public class OreCompass extends Item {
             user.getName().getString(), world.getRegistryKey().getValue(), world.isClient);
             
         ItemStack itemStack = user.getStackInHand(hand);
-        NbtCompound nbt = itemStack.getOrCreateNbt();
+        var data = itemStack.get(DataComponentTypes.CUSTOM_DATA);
+        NbtCompound nbt;
+        if (data != null) nbt = data.copyNbt();
+        else nbt = new NbtCompound();
 
         if (user.isSneaking()) {
             if (world.isClient) {
                 return TypedActionResult.success(itemStack);
             }
-            clearNbtRecords(nbt);
+            clearNbtRecords(itemStack);
             user.sendMessage(Text.translatable("item.miners-compass.ore_compass.cleared_all"), true);
             return TypedActionResult.success(itemStack);
         }
@@ -298,7 +338,11 @@ public class OreCompass extends Item {
         );
     }
 
-    private static void clearNbtRecords(NbtCompound nbt) {
+    private static void clearNbtRecords(ItemStack stack) {
+        var data = stack.get(DataComponentTypes.CUSTOM_DATA);
+        NbtCompound nbt;
+        if (data != null) nbt = data.copyNbt();
+        else return;
         if (nbt == null) return;
         List<String> keysToRemove = new ArrayList<>();
         for (String key : nbt.getKeys()) {
@@ -309,6 +353,9 @@ public class OreCompass extends Item {
             }
         }
         keysToRemove.forEach(nbt::remove);
+
+        NbtComponent component = NbtComponent.of(nbt);
+        stack.set(DataComponentTypes.CUSTOM_DATA, component);
     }
 
     @Override
@@ -332,14 +379,17 @@ public class OreCompass extends Item {
             }
 
             DynamicOreType oreType = oreTypeOpt.get();
-            NbtCompound nbt = itemStack.getOrCreateNbt();
+            var data = itemStack.get(DataComponentTypes.CUSTOM_DATA);
+            NbtCompound nbt;
+            if (data != null) nbt = data.copyNbt();
+            else nbt = new NbtCompound();
             Set<DynamicOreType> selectedOreTypes = getSelectedOreTypesFromNbt(nbt);
 
             if (selectedOreTypes.contains(oreType)) {
                 selectedOreTypes.remove(oreType);
                 OreTypeManager.sendOreTypeMessage(player, oreType, false);
                 if (selectedOreTypes.isEmpty()) {
-                    clearNbtRecords(nbt);
+                    clearNbtRecords(itemStack);
                 }
             } else {
                 if (selectedOreTypes.size() < MinersCompassMod.config.maxBlocks) {
@@ -351,67 +401,13 @@ public class OreCompass extends Item {
                 }
             }
 
-            saveSelectedOreTypesToNbt(nbt, selectedOreTypes);
+            saveSelectedOreTypesToNbt(itemStack, selectedOreTypes);
             return ActionResult.SUCCESS;
         }
 
         return super.useOnBlock(context);
     }
 
-    public void appendTooltip(ItemStack itemStack, World world, List<Text> tooltip, TooltipContext tooltipContext) {
-        if (tooltipContext.isCreative()) return;
-        
-        NbtCompound nbt = itemStack.getNbt();
-        Set<DynamicOreType> selectedOreTypes = getSelectedOreTypesFromNbt(nbt);
-
-        if (getTrackedPos(nbt) != null) {
-            String trackedOreTypeName = "Unknown";
-            if (hasNbtKey(nbt, TRACKED_ORE_TYPE_KEY)) {
-                String oreTypeId = nbt.getString(TRACKED_ORE_TYPE_KEY);
-                for (DynamicOreType type : DynamicOreType.getAllTypes()) {
-                    if (type.getId().equals(oreTypeId)) {
-                        trackedOreTypeName = type.getDisplayName();
-                        break;
-                    }
-                }
-            }
-
-            tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.hint").formatted(Formatting.GRAY));
-            
-            var dimKey = getTrackedDimension(nbt);
-            if (dimKey.isPresent() && !dimKey.get().toString().equals(world.getRegistryKey().toString())) {
-                tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.wrong_dim1", trackedOreTypeName)
-                        .formatted(Formatting.DARK_RED).formatted(Formatting.BOLD));
-                tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.wrong_dim2")
-                        .formatted(Formatting.DARK_RED).formatted(Formatting.BOLD));
-            } else {
-                tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.locked_on", trackedOreTypeName)
-                        .formatted(Formatting.RED));
-            }
-        } else if (!selectedOreTypes.isEmpty()) {
-            tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.not_found")
-                    .formatted(Formatting.DARK_PURPLE));
-        } else {
-            tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.no_ore_types")
-                    .formatted(Formatting.DARK_PURPLE));
-        }
-
-        if (!selectedOreTypes.isEmpty()) {
-            if (Screen.hasShiftDown()) {
-                tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.selected_ore_types")
-                        .formatted(Formatting.YELLOW));
-                for (DynamicOreType oreType : selectedOreTypes) {
-                    int variantCount = OreTypeManager.getVariantCount(oreType);
-                    String displayText = variantCount > 1 
-                        ? oreType.getDisplayName() + " (" + variantCount + " variants)"
-                        : oreType.getDisplayName();
-                    tooltip.add(Text.literal(" - " + displayText).formatted(oreType.getColor()));
-                }
-            } else {
-                tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.tooltip"));
-            }
-        }
-    }
 
     @Override
     public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected) {

@@ -5,9 +5,7 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "minecraft:diamond"
-            ]
+            "items": "minecraft:diamond"
           }
         ]
       },
@@ -17,9 +15,7 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "minecraft:diamond_block"
-            ]
+            "items": "minecraft:diamond_block"
           }
         ]
       },
@@ -29,9 +25,7 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "minecraft:emerald_block"
-            ]
+            "items": "minecraft:emerald_block"
           }
         ]
       },
@@ -41,9 +35,7 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "minecraft:gold_block"
-            ]
+            "items": "minecraft:gold_block"
           }
         ]
       },
@@ -53,9 +45,7 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "minecraft:netherite_scrap"
-            ]
+            "items": "minecraft:netherite_scrap"
           }
         ]
       },
@@ -65,9 +55,7 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "minecraft:recovery_compass"
-            ]
+            "items": "minecraft:recovery_compass"
           }
         ]
       },
@@ -77,9 +65,7 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "minecraft:redstone_block"
-            ]
+            "items": "minecraft:redstone_block"
           }
         ]
       },
@@ -87,27 +73,26 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "minecraft:ore_compass"
+        "recipe": "miners-compass:ore_compass"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
   },
   "requirements": [
     [
+      "has_the_recipe",
       "has_gold_block",
       "has_redstone_block",
       "has_emerald_block",
       "has_netherite_scrap",
       "has_recovery_compass",
       "has_diamond",
-      "has_diamond_block",
-      "has_the_recipe"
+      "has_diamond_block"
     ]
   ],
   "rewards": {
     "recipes": [
-      "minecraft:ore_compass"
+      "miners-compass:ore_compass"
     ]
-  },
-  "sends_telemetry_event": false
+  }
 }

@@ -8,6 +8,9 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.component.ComponentType;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.NbtComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
@@ -29,7 +32,9 @@ public class OreSelectionScreen extends Screen {
     }
 
     private void loadSelectedOreTypes() {
-        NbtCompound nbt = compassStack.getNbt();
+        var data = compassStack.get(DataComponentTypes.CUSTOM_DATA);
+        if (data == null) return;
+        var nbt = data.copyNbt();
         if (nbt == null) return;
 
         for (String key : nbt.getKeys()) {
@@ -145,15 +150,16 @@ public class OreSelectionScreen extends Screen {
             button.setMessage(getOreTypeButtonText(oreType));
             
             // Disable button if max selection reached and not currently selected
-            boolean canSelect = selectedOreTypes.size() < MinersCompassMod.config.maxBlocks || selectedOreTypes.contains(oreType);
-            button.active = canSelect;
+            button.active = selectedOreTypes.size() < MinersCompassMod.config.maxBlocks || selectedOreTypes.contains(oreType);
         }
         
         clearAllButton.active = !selectedOreTypes.isEmpty();
     }
 
     private void saveSelectedOreTypes() {
-        NbtCompound nbt = compassStack.getOrCreateNbt();
+        var data = compassStack.get(DataComponentTypes.CUSTOM_DATA);
+        var nbt = new NbtCompound();
+        if (data != null) nbt = data.copyNbt();
         
         // Clear existing ore type keys
         List<String> keysToRemove = new ArrayList<>();
@@ -170,11 +176,14 @@ public class OreSelectionScreen extends Screen {
             nbt.putString("SelectedOreTypes" + index, oreType.getId());
             index++;
         }
+
+        var component = NbtComponent.of(nbt);
+        compassStack.set(DataComponentTypes.CUSTOM_DATA, component);
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderBackground(context);
+        renderBackground(context, mouseX, mouseY, delta);
         super.render(context, mouseX, mouseY, delta);
         
         // Title

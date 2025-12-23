@@ -123,9 +123,9 @@ public class CustomOreTypeConfig {
             List<Block> validBlocks = new ArrayList<>();
             for (String blockId : customOre.blockIds) {
                 try {
-                    Identifier id = new Identifier(blockId);
+                    Identifier id = Identifier.of(blockId);
                     Block block = Registries.BLOCK.get(id);
-                    if (block != null && !block.equals(Registries.BLOCK.get(new Identifier("air")))) {
+                    if (block != null && !block.equals(Registries.BLOCK.get(Identifier.of("air")))) {
                         validBlocks.add(block);
                     } else {
                         MinersCompassMod.LOGGER.warn("Block '{}' not found for custom ore '{}'", blockId, customOre.name);
@@ -161,9 +161,9 @@ public class CustomOreTypeConfig {
                     continue;
                 }
                 
-                Identifier id = new Identifier(blockId.trim());
+                Identifier id = Identifier.of(blockId.trim());
                 Block block = Registries.BLOCK.get(id);
-                if (block != null && !block.equals(Registries.BLOCK.get(new Identifier("air")))) {
+                if (block != null && !block.equals(Registries.BLOCK.get(Identifier.of("air")))) {
                     forceIncluded.add(block);
                     MinersCompassMod.LOGGER.info("Force-included block: {}", blockId);
                 } else {

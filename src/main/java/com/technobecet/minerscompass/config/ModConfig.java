@@ -10,6 +10,10 @@ import java.util.List;
 
 @Config(name = "miners_compass")
 public class ModConfig implements ConfigData {
+    // Show direction lines leading to the ore block
+    @ConfigEntry.Gui.Tooltip(count = 1)
+    public boolean showDirectionLines = true;
+
     // How many chunks around the player to search for ores (0-100)
     // Higher values = larger search area but may impact performance
     @ConfigEntry.Gui.Tooltip(count = 1)

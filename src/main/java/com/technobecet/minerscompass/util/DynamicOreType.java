@@ -254,7 +254,7 @@ public class DynamicOreType {
         return create(oreName, color, displayName);
     }
 
-    private static Formatting generateColorForOre(String oreName) {
+    public static Formatting generateColorForOre(String oreName) {
         // Assign colors based on ore name characteristics
         Map<String, Formatting> colorMap = new HashMap<>();
 
