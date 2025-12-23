@@ -7,6 +7,8 @@ import com.technobecet.minerscompass.util.OreTypeManager;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.Entity;
@@ -14,6 +16,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
+import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtOps;
@@ -408,6 +411,69 @@ public class OreCompass extends Item {
         return super.useOnBlock(context);
     }
 
+    @Override
+    public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType tooltipType) {
+        var player = MinecraftClient.getInstance().player;
+        if (player == null) return;
+        if (player.isCreative()) return;
+
+        var world = MinecraftClient.getInstance().world;
+        if (world == null) return;
+
+        var data = stack.get(DataComponentTypes.CUSTOM_DATA);
+        NbtCompound nbt = new NbtCompound();
+        if (data != null) nbt = data.copyNbt();
+
+        Set<DynamicOreType> selectedOreTypes = getSelectedOreTypesFromNbt(nbt);
+
+        if (getTrackedPos(nbt) != null) {
+            String trackedOreTypeName = "Unknown";
+            if (hasNbtKey(nbt, TRACKED_ORE_TYPE_KEY)) {
+                String oreTypeId = nbt.getString(TRACKED_ORE_TYPE_KEY);
+                for (DynamicOreType type : DynamicOreType.getAllTypes()) {
+                    if (type.getId().equals(oreTypeId)) {
+                        trackedOreTypeName = type.getDisplayName();
+                        break;
+                    }
+                }
+            }
+
+            tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.hint").formatted(Formatting.GRAY));
+
+            var dimKey = getTrackedDimension(nbt);
+            if (dimKey.isPresent() && !dimKey.get().toString().equals(world.getRegistryKey().toString())) {
+                tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.wrong_dim1", trackedOreTypeName)
+                        .formatted(Formatting.DARK_RED).formatted(Formatting.BOLD));
+                tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.wrong_dim2")
+                        .formatted(Formatting.DARK_RED).formatted(Formatting.BOLD));
+            } else {
+                tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.locked_on", trackedOreTypeName)
+                        .formatted(Formatting.RED));
+            }
+        } else if (!selectedOreTypes.isEmpty()) {
+            tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.not_found")
+                    .formatted(Formatting.DARK_PURPLE));
+        } else {
+            tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.no_ore_types")
+                    .formatted(Formatting.DARK_PURPLE));
+        }
+
+        if (!selectedOreTypes.isEmpty()) {
+            if (Screen.hasShiftDown()) {
+                tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.selected_ore_types")
+                        .formatted(Formatting.YELLOW));
+                for (DynamicOreType oreType : selectedOreTypes) {
+                    int variantCount = OreTypeManager.getVariantCount(oreType);
+                    String displayText = variantCount > 1
+                            ? oreType.getDisplayName() + " (" + variantCount + " variants)"
+                            : oreType.getDisplayName();
+                    tooltip.add(Text.literal(" - " + displayText).formatted(oreType.getColor()));
+                }
+            } else {
+                tooltip.add(Text.translatable("tooltip.miners-compass.ore_compass.tooltip"));
+            }
+        }
+    }
 
     @Override
     public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected) {
