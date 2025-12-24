@@ -8,9 +8,10 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.component.ComponentType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
@@ -18,16 +19,21 @@ import net.minecraft.util.Formatting;
 
 import java.util.*;
 
+import static com.technobecet.minerscompass.item.custom.OreCompass.SELECTED_ORES_TYPES_KEY;
+
 public class OreSelectionScreen extends Screen {
     private final ItemStack compassStack;
+    private final PlayerEntity user;
+    private final Item item;
     private final Map<DynamicOreType, ButtonWidget> oreButtons = new HashMap<>();
-    private Set<DynamicOreType> selectedOreTypes = new HashSet<>();
+    private final Set<DynamicOreType> selectedOreTypes = new HashSet<>();
     private ButtonWidget clearAllButton;
-    private ButtonWidget doneButton;
 
-    public OreSelectionScreen(ItemStack compassStack) {
+    public OreSelectionScreen(Item item, PlayerEntity user, ItemStack compassStack) {
         super(Text.translatable("screen.miners-compass.ore_selection"));
         this.compassStack = compassStack;
+        this.user = user;
+        this.item = item;
         loadSelectedOreTypes();
     }
 
@@ -38,7 +44,7 @@ public class OreSelectionScreen extends Screen {
         if (nbt == null) return;
 
         for (String key : nbt.getKeys()) {
-            if (key.startsWith("SelectedOreTypes")) {
+            if (key.startsWith(SELECTED_ORES_TYPES_KEY)) {
                 String oreTypeId = nbt.getString(key);
                 for (DynamicOreType type : DynamicOreType.getAllTypes()) {
                     if (type.getId().equals(oreTypeId)) {
@@ -90,9 +96,9 @@ public class OreSelectionScreen extends Screen {
         addDrawableChild(clearAllButton);
 
         // Done button
-        doneButton = ButtonWidget.builder(
-            Text.translatable("screen.miners-compass.ore_selection.done"),
-            btn -> done()
+        ButtonWidget doneButton = ButtonWidget.builder(
+                Text.translatable("screen.miners-compass.ore_selection.done"),
+                btn -> done()
         ).dimensions(width / 2 + 55, height - 50, 100, 20).build();
         addDrawableChild(doneButton);
 
@@ -135,10 +141,18 @@ public class OreSelectionScreen extends Screen {
         saveSelectedOreTypes();
         
         // Send packet to sync ore selection to server
-        MinersCompassMod.LOGGER.info("Sending ore selection sync packet with {} ore types", selectedOreTypes.size());
+        MinersCompassMod.LOGGER.info("Sending ore selection sync packet with ore types: {}", selectedOreTypes);
         OreSelectionSyncPacket packet = OreSelectionSyncPacket.create(selectedOreTypes);
         ClientPlayNetworking.send(packet);
-        
+
+        if (selectedOreTypes.isEmpty()) {
+            user.sendMessage(Text.translatable("item.miners-compass.ore_compass.no_ore_types"), true);
+            close();
+            return;
+        }
+
+        user.getItemCooldownManager().set(item, 100);
+
         close();
     }
 
@@ -164,7 +178,7 @@ public class OreSelectionScreen extends Screen {
         // Clear existing ore type keys
         List<String> keysToRemove = new ArrayList<>();
         for (String key : nbt.getKeys()) {
-            if (key.startsWith("SelectedOreTypes")) {
+            if (key.startsWith(SELECTED_ORES_TYPES_KEY)) {
                 keysToRemove.add(key);
             }
         }
@@ -173,7 +187,7 @@ public class OreSelectionScreen extends Screen {
         // Save new selection
         int index = 0;
         for (DynamicOreType oreType : selectedOreTypes) {
-            nbt.putString("SelectedOreTypes" + index, oreType.getId());
+            nbt.putString(SELECTED_ORES_TYPES_KEY + index, oreType.getId());
             index++;
         }
 

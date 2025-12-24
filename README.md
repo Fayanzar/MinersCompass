@@ -107,6 +107,9 @@ Works with **ANY modpack** out of the box:
   // Maximum ore types selectable at once (0-20)
   // Balance between flexibility and performance
   "maxBlocks": 3,
+  // Enable tracking blocks of different ore types simultaneously
+  // Moderately impacts performance
+  "trackMultipleBlocks": false,
   // Enable automatic detection of modded ores
   // Set false to only use custom definitions
   "enableAutoDiscovery": true,
@@ -156,6 +159,7 @@ Works with **ANY modpack** out of the box:
     ore block
 - **`chunkRadius`** - Search area around player (larger = more lag)
 - **`maxBlocks`** - How many ore types you can select simultaneously
+- **`trackMultipleBlocks`** - Track blocks from different ore types simultaneously
 - **`enableAutoDiscovery`** - Automatically find modded ores vs manual only
 - **`groupSimilarOres`** - Combine variants vs separate entries
 - **`minimumHardness`** - Filter out soft decorative blocks
@@ -181,6 +185,7 @@ Works with **ANY modpack** out of the box:
   "showDirectionLines": true,
   "chunkRadius": 2,
   "maxBlocks": 3,
+  "trackMultipleBlocks": false,
   "minimumHardness": 2.0,
   "excludedOreTypes": [
     "coal",
@@ -259,6 +264,7 @@ Works with **ANY modpack** out of the box:
   "maxBlocks": 3,
   // New features
   "showDirectionLines": true,
+  "trackMultipleBlocks": false,
   "enableAutoDiscovery": true,
   "excludedOreTypes": [
     "coal",

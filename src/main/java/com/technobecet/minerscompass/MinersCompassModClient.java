@@ -11,6 +11,7 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.GlobalPos;
 
 public class MinersCompassModClient implements ClientModInitializer {
 
@@ -19,7 +20,27 @@ public class MinersCompassModClient implements ClientModInitializer {
         NbtCompound nbt;
         if (data != null) nbt = data.copyNbt();
         else nbt = new NbtCompound();
-        return OreCompass.getTrackedPos(nbt);
+
+        double closestDistanceSq = Double.MAX_VALUE;
+        GlobalPos closestPos = null;
+        var positions = OreCompass.getTrackedPos(nbt);
+        if (positions == null) return null;
+
+        for (var pos : positions) {
+            if (pos == null) continue;
+
+            double dx = pos.pos().getX() - entity.lastRenderX;
+            double dy = pos.pos().getY() - entity.lastRenderY;
+            double dz = pos.pos().getZ() - entity.lastRenderZ;
+            double distanceSq = dx * dx + dy * dy + dz * dz;
+
+            if (distanceSq < closestDistanceSq) {
+                closestPos = pos;
+                closestDistanceSq = distanceSq;
+            }
+        }
+
+        return closestPos;
     });
 
     private static float getSpinningAngle(ClientWorld world) {
@@ -36,7 +57,7 @@ public class MinersCompassModClient implements ClientModInitializer {
                     if (data != null) nbt = data.copyNbt();
                     else nbt = new NbtCompound();
                     var pos = OreCompass.getTrackedPos(nbt);
-                    if (pos == null && world != null) {
+                    if ((pos == null || pos.isEmpty()) && world != null) {
                         return getSpinningAngle(world);
                     }
 

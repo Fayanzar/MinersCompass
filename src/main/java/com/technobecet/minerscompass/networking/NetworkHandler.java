@@ -2,19 +2,17 @@ package com.technobecet.minerscompass.networking;
 
 import com.technobecet.minerscompass.MinersCompassMod;
 import com.technobecet.minerscompass.item.ModItems;
-import com.technobecet.minerscompass.util.DynamicOreType;
+import com.technobecet.minerscompass.item.custom.OreCompass;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+
+import static com.technobecet.minerscompass.item.custom.OreCompass.SELECTED_ORES_TYPES_KEY;
 
 public class NetworkHandler {
     
@@ -24,7 +22,7 @@ public class NetworkHandler {
             // Handle the packet on the server thread
             player.server.execute(() -> {
                 MinersCompassMod.LOGGER.info("Received ore selection sync from player: {}", player.getName().getString());
-                MinersCompassMod.LOGGER.info("Selected ore types: {}", packet.selectedOreTypeIds().size());
+                MinersCompassMod.LOGGER.info("Selected ore types: {}", packet.selectedOreTypeIds());
                 
                 // Find the compass in player's inventory
                 ItemStack compassStack = null;
@@ -57,7 +55,7 @@ public class NetworkHandler {
                 // Clear existing ore type keys
                 List<String> keysToRemove = new ArrayList<>();
                 for (String key : nbt.getKeys()) {
-                    if (key.startsWith("SelectedOreTypes")) {
+                    if (key.startsWith(SELECTED_ORES_TYPES_KEY)) {
                         keysToRemove.add(key);
                     }
                 }
@@ -66,14 +64,17 @@ public class NetworkHandler {
                 // Save new selection
                 int index = 0;
                 for (String oreTypeId : packet.selectedOreTypeIds()) {
-                    nbt.putString("SelectedOreTypes" + index, oreTypeId);
+                    nbt.putString(SELECTED_ORES_TYPES_KEY + index, oreTypeId);
                     index++;
                 }
 
                 NbtComponent component = NbtComponent.of(nbt);
                 compassStack.set(DataComponentTypes.CUSTOM_DATA, component);
 
-                MinersCompassMod.LOGGER.info("Updated compass NBT with {} ore types", packet.selectedOreTypeIds().size());
+                MinersCompassMod.LOGGER.info("Updated compass NBT with ore types: {}", packet.selectedOreTypeIds());
+
+                var pos = OreCompass.findBlocks(compassStack, player.getServerWorld(), player, true);
+                OreCompass.playSound(player.getWorld(), player, pos.isPresent());
             });
         });
     }

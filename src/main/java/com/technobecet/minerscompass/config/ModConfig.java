@@ -25,6 +25,13 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 1)
     @ConfigEntry.BoundedDiscrete(min = 0, max = 20)
     public int maxBlocks = 5;
+
+    // Whether to track ore blocks of multiple types at once.
+    // If enabled, compass will switch its direction between those blocks
+    // depending on player proximity. If direction lines are enabled, they will
+    // point at all those blocks at once. Moderately impacts performance
+    @ConfigEntry.Gui.Tooltip(count = 1)
+    public boolean trackMultipleBlocks = false;
     
     // Enable automatic detection of modded ores
     // Set to false to only use manually defined ore types

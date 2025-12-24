@@ -202,16 +202,15 @@ public class DynamicOreType {
         // Handle multi-word ore names
         if (oreName.contains("_")) {
             // Special cases for multi-word names
-            switch (oreName) {
-                case "tigers_eye":
-                    return "tigers_eye";
-                case "midas_gold":
-                    return "midas_gold";
-                default:
+            return switch (oreName) {
+                case "tigers_eye" -> "tigers_eye";
+                case "midas_gold" -> "midas_gold";
+                default -> {
                     // For other cases, take the most descriptive part
                     String[] parts = oreName.split("_");
-                    return parts[parts.length - 1]; // Usually the material name is last
-            }
+                    yield parts[parts.length - 1];
+                }
+            };
         }
         return oreName;
     }
@@ -254,7 +253,7 @@ public class DynamicOreType {
         return create(oreName, color, displayName);
     }
 
-    public static Formatting generateColorForOre(String oreName) {
+    private static Formatting generateColorForOre(String oreName) {
         // Assign colors based on ore name characteristics
         Map<String, Formatting> colorMap = new HashMap<>();
 
