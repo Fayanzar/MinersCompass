@@ -74,7 +74,7 @@ public class NetworkHandler {
                 MinersCompassMod.LOGGER.info("Updated compass NBT with ore types: {}", packet.selectedOreTypeIds());
 
                 var pos = OreCompass.findBlocks(compassStack, player.getServerWorld(), player, true);
-                OreCompass.playSound(player.getWorld(), player, pos.isPresent());
+                OreCompass.playSound(player.getWorld(), player, pos.isPresent(), pos);
             });
         });
     }

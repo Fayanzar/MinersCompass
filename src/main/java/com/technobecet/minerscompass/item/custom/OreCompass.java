@@ -133,7 +133,6 @@ public class OreCompass extends Item {
                 }
         }
         var closest = findBlocksInNearbyChunks(stack, world, entity.getBlockPos(), targetBlocks);
-        MinersCompassMod.LOGGER.info("Closest ore blocks found: {}", closest.isPresent() ? closest.get() : "none");
         
         playSoundOnStateChange(world, entity, stack, closest);
         writeNbt(world.getRegistryKey(), closest, stack);
@@ -147,7 +146,7 @@ public class OreCompass extends Item {
 
     private static void playSoundOnStateChange(World world, Entity entity, ItemStack stack, Optional<List<BlockPos>> closest) {
         if (closest.isPresent()) {
-            playSound(world, entity, true);
+            playSound(world, entity, true, closest);
             return;
         }
         var data = stack.get(DataComponentTypes.CUSTOM_DATA);
@@ -156,7 +155,7 @@ public class OreCompass extends Item {
         else nbt = new NbtCompound();
         var trackedPos = getTrackedPos(nbt);
         if (trackedPos != null) {
-            playSound(world, entity, false);
+            playSound(world, entity, false, closest);
         }
     }
 
@@ -189,7 +188,8 @@ public class OreCompass extends Item {
         stack.set(DataComponentTypes.CUSTOM_DATA, component);
     }
 
-    public static void playSound(World world, Entity entity, boolean success) {
+    public static void playSound(World world, Entity entity, boolean success, Optional<List<BlockPos>> closest) {
+        MinersCompassMod.LOGGER.info("Closest ore blocks found: {}", closest.isPresent() ? closest.get() : "none");
         world.playSound(null, entity.getBlockPos(),
                 success ? SoundEvents.ITEM_LODESTONE_COMPASS_LOCK : SoundEvents.BLOCK_FIRE_EXTINGUISH,
                 SoundCategory.PLAYERS, 1f, 1f);

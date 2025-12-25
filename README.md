@@ -99,7 +99,7 @@ Works with **ANY modpack** out of the box:
 
 ```json5
 {
-  // Show debug lines leading to the ore block
+  // Show direction lines leading to the ore block
   "showDirectionLines": true,
   // How many chunks around player to search (0-100)
   // Higher values = larger area but more performance impact

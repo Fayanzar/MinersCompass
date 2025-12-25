@@ -8,7 +8,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.player.PlayerEntity;
@@ -76,19 +75,15 @@ public class OreSelectionScreen extends Screen {
 
         List<ButtonWidget> buttonRow = new ArrayList<>();
 
-        for (int i = 0; i < availableOreTypes.size(); i++) {
-            DynamicOreType oreType = availableOreTypes.get(i);
-            
+        for (DynamicOreType oreType : availableOreTypes) {
             ButtonWidget button = ButtonWidget.builder(
-                getOreTypeButtonText(oreType),
-                btn -> toggleOreType(oreType)
+                    getOreTypeButtonText(oreType),
+                    btn -> toggleOreType(oreType)
             ).build();
             oreButtons.put(oreType, button);
 
             buttonRow.add(button);
             if (buttonRow.size() == buttonsPerRow) {
-                MinersCompassMod.LOGGER.info(String.valueOf(buttonRow.stream().map(b -> b.getMessage().getString()).toList()));
-
                 var buttonElement = new ButtonElementListWidget.ButtonElement(buttonRow);
                 buttonWidget.addEntry(buttonElement);
 

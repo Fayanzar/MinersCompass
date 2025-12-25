@@ -1,11 +1,20 @@
 {
+  // Show direction lines leading to the ore block
+  "showDirectionLines": true,
+
   // How many chunks around the player to search for ores (0-100)
   // Higher values = larger search area but may impact performance
-  "chunkRadius": 3,
+  "chunkRadius": 2,
 
   // Maximum number of ore types that can be selected at once (0-20)
   // Lower values = better performance, higher values = more flexibility
-  "maxBlocks": 8,
+  "maxBlocks": 3,
+
+  // Whether to track ore blocks of multiple types at once.
+  // If enabled, compass will switch its direction between those blocks
+  // depending on player proximity. If direction lines are enabled, they will
+  // point at all those blocks at once. Moderately impacts performance
+  "trackMultipleBlocks": false,
 
   // Enable automatic detection of modded ores
   // Set to false to only use manually defined ore types
