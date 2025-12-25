@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.player.PlayerEntity;
@@ -60,46 +61,53 @@ public class OreSelectionScreen extends Screen {
     protected void init() {
         super.init();
 
-        int buttonWidth = 120;
         int buttonHeight = 20;
-        int buttonsPerRow = 3;
+        int buttonsPerRow = 2;
         int spacing = 10;
-        int startX = (width - (buttonsPerRow * buttonWidth + (buttonsPerRow - 1) * spacing)) / 2;
-        int startY = 50;
+
+        var client = this.client;
+        ButtonElementListWidget buttonWidget = new ButtonElementListWidget(client, width, height / 2, 50, buttonHeight + spacing);
+
+        addDrawableChild(buttonWidget);
 
         // Ensure ore discovery is up to date when GUI opens
         OreTypeManager.initialize();
         List<DynamicOreType> availableOreTypes = OreTypeManager.getAvailableOreTypes();
-        
+
+        List<ButtonWidget> buttonRow = new ArrayList<>();
+
         for (int i = 0; i < availableOreTypes.size(); i++) {
             DynamicOreType oreType = availableOreTypes.get(i);
-            int row = i / buttonsPerRow;
-            int col = i % buttonsPerRow;
-            
-            int x = startX + col * (buttonWidth + spacing);
-            int y = startY + row * (buttonHeight + spacing);
             
             ButtonWidget button = ButtonWidget.builder(
                 getOreTypeButtonText(oreType),
                 btn -> toggleOreType(oreType)
-            ).dimensions(x, y, buttonWidth, buttonHeight).build();
-            
+            ).build();
             oreButtons.put(oreType, button);
-            addDrawableChild(button);
+
+            buttonRow.add(button);
+            if (buttonRow.size() == buttonsPerRow) {
+                MinersCompassMod.LOGGER.info(String.valueOf(buttonRow.stream().map(b -> b.getMessage().getString()).toList()));
+
+                var buttonElement = new ButtonElementListWidget.ButtonElement(buttonRow);
+                buttonWidget.addEntry(buttonElement);
+
+                buttonRow = new ArrayList<>();
+            }
         }
 
         // Clear All button
         clearAllButton = ButtonWidget.builder(
             Text.translatable("screen.miners-compass.ore_selection.clear_all"),
             btn -> clearAll()
-        ).dimensions(width / 2 - 155, height - 50, 100, 20).build();
+        ).dimensions(width / 2 - 155, height - 40, 100, 20).build();
         addDrawableChild(clearAllButton);
 
         // Done button
         ButtonWidget doneButton = ButtonWidget.builder(
                 Text.translatable("screen.miners-compass.ore_selection.done"),
                 btn -> done()
-        ).dimensions(width / 2 + 55, height - 50, 100, 20).build();
+        ).dimensions(width / 2 + 55, height - 40, 100, 20).build();
         addDrawableChild(doneButton);
 
         updateButtonStates();
@@ -157,12 +165,11 @@ public class OreSelectionScreen extends Screen {
     }
 
     private void updateButtonStates() {
-        for (Map.Entry<DynamicOreType, ButtonWidget> entry : oreButtons.entrySet()) {
-            DynamicOreType oreType = entry.getKey();
-            ButtonWidget button = entry.getValue();
-            
+        for (var entry : oreButtons.entrySet()) {
+            var button = entry.getValue();
+            var oreType = entry.getKey();
             button.setMessage(getOreTypeButtonText(oreType));
-            
+
             // Disable button if max selection reached and not currently selected
             button.active = selectedOreTypes.size() < MinersCompassMod.config.maxBlocks || selectedOreTypes.contains(oreType);
         }
@@ -205,11 +212,11 @@ public class OreSelectionScreen extends Screen {
         
         // Selection info
         String selectionInfo = selectedOreTypes.size() + "/" + MinersCompassMod.config.maxBlocks + " ore types selected";
-        context.drawCenteredTextWithShadow(textRenderer, Text.literal(selectionInfo), width / 2, height - 75, 0xAAAAAA);
+        context.drawCenteredTextWithShadow(textRenderer, Text.literal(selectionInfo), width / 2, height - 65, 0xAAAAAA);
         
         // Instructions
         String instructions = "Click ore types to toggle selection";
-        context.drawCenteredTextWithShadow(textRenderer, Text.literal(instructions), width / 2, height - 65, 0x888888);
+        context.drawCenteredTextWithShadow(textRenderer, Text.literal(instructions), width / 2, height - 55, 0x888888);
     }
 
     @Override
